@@ -42,7 +42,7 @@
   }
 
   .brand { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-  .brand .emoji { font-size: 22px; }
+  .brand .logo { width: 32px; height: 32px; object-fit: contain; }
 
   .card {
     background: var(--card);
@@ -52,8 +52,9 @@
   }
 
   .card-title { font-size: 17px; font-weight: 700; margin: 0 0 16px; display: flex; align-items: center; gap: 8px; }
+  .card-title-icon { width: 24px; height: 24px; stroke: #4a4f5c; flex-shrink: 0; }
 
-  input[type="text"], input[type="file"] {
+  input[type="text"] {
     font-family: inherit;
     font-size: 14px;
     padding: 10px 14px;
@@ -64,9 +65,51 @@
     outline: none;
   }
   input[type="text"]:focus { border-color: var(--blue-2); background: #fff; }
-  input[type="file"] { border-radius: 14px; }
 
-  button {
+  #imageInput { display: none; }
+  .file-drop {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 200px;
+    border: 2px dotted var(--blue-2);
+    border-radius: 14px;
+    background: #f8f9fd;
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    overflow: hidden;
+  }
+  .file-drop:hover { background-color: #eaf2ff; }
+  .file-drop .file-drop-icon { width: 36px; height: 36px; stroke: var(--muted); opacity: 0.7; }
+  .file-drop.has-image { height: auto; display: block; padding: 0; }
+  .file-drop.has-image .file-drop-icon { display: none; }
+  .file-drop .file-drop-preview { display: none; width: 100%; height: auto; }
+  .file-drop.has-image .file-drop-preview { display: block; }
+  .file-drop .file-drop-text { font-size: 13px; text-align: center; }
+  .file-drop.has-image .file-drop-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.85);
+    padding: 6px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 1s ease;
+  }
+  .file-drop.has-image .file-drop-text.fade-out {
+    opacity: 0;
+  }
+
+  button, .btn {
     font-family: inherit;
     font-size: 14px;
     font-weight: 600;
@@ -78,9 +121,15 @@
     color: #fff;
     box-shadow: 0 6px 16px rgba(79, 142, 247, 0.35);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
-  button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79, 142, 247, 0.42); }
+  button:hover:not(:disabled), .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79, 142, 247, 0.42); }
   button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
+
+  .upload-actions { display: flex; gap: 10px; }
+  .upload-actions button, .upload-actions .btn { flex: 1; }
 
   #logoutBtn, .btn-outline {
     background: #f1f3f9;
@@ -89,7 +138,8 @@
   }
   #logoutBtn:hover, .btn-outline:hover { box-shadow: none; background: #e7eaf3; }
 
-  #preview { max-width: 100%; margin-top: 14px; border-radius: 16px; display: none; box-shadow: var(--shadow-sm); }
+  #recognizeBtn, #recipeBtn { padding: 16px 20px; }
+  #recipeBtn { width: 100%; }
 
   #status, #recipeStatus, #savedListStatus { margin-top: 12px; font-size: 13px; color: var(--muted); }
 
@@ -130,11 +180,33 @@
 
   #recipes { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
   .recipe-card {
+    position: relative;
     border: 1px solid var(--border);
     border-radius: 18px;
     padding: 18px;
     background: #fbfcff;
+    opacity: 1;
+    transition: opacity 0.6s ease;
   }
+  .recipe-card.card-fade-out { opacity: 0; }
+  .save-toast {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 999px;
+    box-shadow: var(--shadow-sm);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .save-toast.show { opacity: 1; }
   .recipe-card h3 { margin: 0 0 10px; font-size: 16px; }
   .recipe-card .meta {
     font-size: 12px;
@@ -148,7 +220,21 @@
   }
   .recipe-card ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #454b5c; }
   .recipe-card .actions { margin-top: 14px; }
-  .recipe-card .actions button { padding: 7px 16px; font-size: 13px; }
+  .recipe-card .actions button {
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 13px;
+    background: #f1f3f9;
+    color: var(--text);
+    box-shadow: none;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .recipe-card .actions button:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
+    color: #fff;
+    box-shadow: none;
+    transform: none;
+  }
 
   .profile-box { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   #profileForm { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -156,6 +242,18 @@
   #profileStatus { font-size: 13px; color: var(--muted); }
 
   #savedList { margin-top: 8px; }
+  .login-required {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 120px;
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 14px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
   .saved-item {
     display: flex;
     justify-content: space-between;
@@ -215,24 +313,39 @@
 <body>
   <div class="page">
     <header class="topbar">
-      <div class="brand"><span class="emoji">🧊</span> 냉장고 레시피</div>
+      <div class="brand"><img class="logo" src="{{ url_for('static', filename='logo.png') }}" alt="냉장고 레시피 로고"> 냉장고 레시피</div>
       <div class="profile-box" id="profileBox">
         <div id="profileForm">
           <input type="text" id="emailInput" placeholder="이메일">
           <input type="text" id="nicknameInput" placeholder="닉네임">
           <button id="profileBtn">프로필 생성/로그인</button>
         </div>
-        <button id="logoutBtn" style="display: none;">로그아웃</button>
         <div id="profileStatus"></div>
+        <button id="logoutBtn" style="display: none;">로그아웃</button>
       </div>
     </header>
 
     <section class="card">
-      <h2 class="card-title">📷 냉장고 사진으로 재료 인식하기</h2>
+      <h2 class="card-title">
+        <svg class="card-title-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z"></path>
+          <circle cx="12" cy="13" r="3.5"></circle>
+        </svg>
+        냉장고 사진으로 재료 인식하기
+      </h2>
+      <label class="file-drop" for="imageInput" id="fileDropLabel">
+        <svg class="file-drop-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <path d="M21 15l-5-5L5 21"></path>
+        </svg>
+        <span class="file-drop-text">사진을 선택하려면 클릭하세요</span>
+        <img class="file-drop-preview" id="fileDropPreview" alt="">
+      </label>
       <input type="file" id="imageInput" accept="image/*">
-      <img id="preview">
-      <div>
-        <button id="recognizeBtn" style="margin-top: 14px;">재료 인식하기</button>
+      <div class="upload-actions" style="margin-top: 14px;">
+        <button id="recognizeBtn">재료 인식하기</button>
+        <label class="btn btn-outline" for="imageInput" id="reuploadBtn" style="display: none;">사진 재업로드</label>
       </div>
       <div id="status"></div>
 
@@ -244,14 +357,26 @@
     </section>
 
     <section class="card">
-      <h2 class="card-title">🍳 레시피 추천</h2>
+      <h2 class="card-title">
+        <svg class="card-title-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 10a4 4 0 0 1 2.2-3.58A4.5 4.5 0 0 1 12 3a4.5 4.5 0 0 1 3.8 3.42A4 4 0 0 1 18 10c0 3-1 5-1 7H7c0-2-1-4-1-7Z"></path>
+          <path d="M7 17h10v2a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-2Z"></path>
+        </svg>
+        레시피 추천
+      </h2>
       <button id="recipeBtn">레시피 추천받기</button>
       <div id="recipeStatus"></div>
       <div id="recipes"></div>
     </section>
 
     <section class="card">
-      <h2 class="card-title">⭐ 내 레시피</h2>
+      <h2 class="card-title">
+        <svg class="card-title-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2.5l2.9 5.88 6.49.94-4.7 4.58 1.11 6.47L12 17.27l-5.8 3.1 1.11-6.47-4.7-4.58 6.49-.94L12 2.5z"></path>
+        </svg>
+        내 레시피
+      </h2>
+      <div class="login-required" id="loginRequired">로그인 하시면 내 레시피를 저장 하실 수 있습니다</div>
       <div id="savedListStatus"></div>
       <div id="savedList"></div>
       <div id="savedDetail"></div>
@@ -260,7 +385,10 @@
 
 <script>
 const imageInput = document.getElementById("imageInput");
-const preview = document.getElementById("preview");
+const fileDropLabel = document.getElementById("fileDropLabel");
+const fileDropText = fileDropLabel.querySelector(".file-drop-text");
+const fileDropPreview = document.getElementById("fileDropPreview");
+const reuploadBtn = document.getElementById("reuploadBtn");
 const recognizeBtn = document.getElementById("recognizeBtn");
 const statusEl = document.getElementById("status");
 const chipsEl = document.getElementById("chips");
@@ -272,8 +400,13 @@ let ingredients = [];
 imageInput.addEventListener("change", () => {
   const file = imageInput.files[0];
   if (!file) return;
-  preview.src = URL.createObjectURL(file);
-  preview.style.display = "block";
+  fileDropText.textContent = `${file.name}가 업로드 됐습니다`;
+  fileDropText.style.display = "";
+  fileDropText.classList.remove("fade-out");
+  fileDropPreview.src = URL.createObjectURL(file);
+  fileDropLabel.classList.add("has-image");
+  reuploadBtn.style.display = "";
+  setTimeout(() => { fileDropText.classList.add("fade-out"); }, 2000);
 });
 
 function renderChips() {
@@ -397,6 +530,24 @@ function renderRecipes(recipes) {
         }
         saveBtn.textContent = "저장됨";
         loadSavedList();
+
+        const toast = document.createElement("div");
+        toast.className = "save-toast";
+        toast.textContent = "저장됐습니다";
+        card.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add("show"));
+
+        setTimeout(() => {
+          card.classList.add("card-fade-out");
+        }, 800);
+        setTimeout(() => {
+          toast.classList.remove("show");
+        }, 1400);
+        card.addEventListener("transitionend", (e) => {
+          if (e.propertyName === "opacity" && card.classList.contains("card-fade-out")) {
+            card.remove();
+          }
+        });
       } catch (e) {
         alert("저장 실패: " + e.message);
       } finally {
@@ -451,10 +602,14 @@ const profileStatusEl = document.getElementById("profileStatus");
 const savedListStatusEl = document.getElementById("savedListStatus");
 const savedListEl = document.getElementById("savedList");
 const savedDetailEl = document.getElementById("savedDetail");
+const loginRequiredEl = document.getElementById("loginRequired");
 
 function setLoggedInUI(loggedIn) {
   profileForm.style.display = loggedIn ? "none" : "block";
   logoutBtn.style.display = loggedIn ? "inline-block" : "none";
+  loginRequiredEl.style.display = loggedIn ? "none" : "flex";
+  savedListStatusEl.style.display = loggedIn ? "" : "none";
+  savedListEl.style.display = loggedIn ? "" : "none";
 }
 
 profileBtn.addEventListener("click", async () => {
@@ -479,7 +634,7 @@ profileBtn.addEventListener("click", async () => {
     }
     currentUser = data;
     localStorage.setItem("fridge_user", JSON.stringify(data));
-    profileStatusEl.textContent = `${data.nickname}님으로 로그인되었습니다. (${data.email})`;
+    profileStatusEl.textContent = `${data.nickname}님`;
     setLoggedInUI(true);
     loadSavedList();
   } catch (e) {
@@ -494,15 +649,17 @@ logoutBtn.addEventListener("click", () => {
   localStorage.removeItem("fridge_user");
   emailInput.value = "";
   nicknameInput.value = "";
-  profileStatusEl.textContent = "로그아웃되었습니다.";
+  profileStatusEl.textContent = "";
   setLoggedInUI(false);
   savedListEl.innerHTML = "";
   savedListStatusEl.textContent = "";
   savedDetailEl.style.display = "none";
 
   imageInput.value = "";
-  preview.src = "";
-  preview.style.display = "none";
+  fileDropText.textContent = "사진을 선택하려면 클릭하세요";
+  fileDropPreview.src = "";
+  fileDropLabel.classList.remove("has-image");
+  reuploadBtn.style.display = "none";
   statusEl.textContent = "";
   ingredients = [];
   renderChips();
@@ -587,9 +744,11 @@ async function showSavedDetail(id) {
     currentUser = JSON.parse(saved);
     emailInput.value = currentUser.email;
     nicknameInput.value = currentUser.nickname;
-    profileStatusEl.textContent = `${currentUser.nickname}님으로 로그인되었습니다. (${currentUser.email})`;
+    profileStatusEl.textContent = `${currentUser.nickname}님`;
     setLoggedInUI(true);
     loadSavedList();
+  } else {
+    setLoggedInUI(false);
   }
 })();
 </script>

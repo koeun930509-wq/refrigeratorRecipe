@@ -76,6 +76,12 @@ def call_openrouter(model, messages):
     )
 
 
+def openrouter_error_message(response):
+    if response.status_code == 429:
+        return "무료 모델의 일일 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요."
+    return response.text
+
+
 def extract_json_object(text):
     if not isinstance(text, str):
         return None
@@ -268,7 +274,7 @@ def generate_recipes_endpoint():
 
     response = generate_recipes(ingredients, options)
     if not response.ok:
-        return jsonify({"error": response.text}), 502
+        return jsonify({"error": openrouter_error_message(response)}), 502
 
     content = response.json()["choices"][0]["message"]["content"]
     parsed = extract_json_object(content)
@@ -278,7 +284,7 @@ def generate_recipes_endpoint():
     if not valid_recipes:
         retry_response = generate_recipes(ingredients, options, retry=True)
         if not retry_response.ok:
-            return jsonify({"error": retry_response.text}), 502
+            return jsonify({"error": openrouter_error_message(retry_response)}), 502
         retry_content = retry_response.json()["choices"][0]["message"]["content"]
         retry_parsed = extract_json_object(retry_content)
         retry_recipes = [r for r in retry_parsed.get("recipes", [])] if retry_parsed else []
@@ -305,7 +311,7 @@ def recognize_ingredients_endpoint():
 
     response = recognize_ingredients(image_data_uri)
     if not response.ok:
-        return jsonify({"error": response.text}), 502
+        return jsonify({"error": openrouter_error_message(response)}), 502
 
     content = response.json()["choices"][0]["message"]["content"]
     parsed = extract_json_object(content)
@@ -313,7 +319,7 @@ def recognize_ingredients_endpoint():
     if parsed is None or "ingredients" not in parsed:
         retry_response = recognize_ingredients(image_data_uri, retry=True)
         if not retry_response.ok:
-            return jsonify({"error": retry_response.text}), 502
+            return jsonify({"error": openrouter_error_message(retry_response)}), 502
         retry_content = retry_response.json()["choices"][0]["message"]["content"]
         parsed = extract_json_object(retry_content)
 
@@ -343,11 +349,11 @@ def chat():
     )
 
     if not response.ok:
-        return jsonify({"error": response.text}), response.status_code
+        return jsonify({"error": openrouter_error_message(response)}), response.status_code
 
     reply = response.json()["choices"][0]["message"]["content"]
     return jsonify({"reply": reply})
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
