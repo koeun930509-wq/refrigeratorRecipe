@@ -37,11 +37,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 8px;
     flex-wrap: wrap;
   }
 
-  .brand { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .brand { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; letter-spacing: -2px; }
   .brand .logo { width: 32px; height: 32px; object-fit: contain; }
 
   .card {
@@ -136,6 +136,7 @@
     color: var(--text);
     box-shadow: none;
   }
+  #logoutBtn { padding-left: 10px; padding-right: 10px; }
   #logoutBtn:hover, .btn-outline:hover { box-shadow: none; background: #e7eaf3; }
 
   #recognizeBtn, #recipeBtn { padding: 16px 20px; }
@@ -219,6 +220,7 @@
     font-weight: 600;
   }
   .recipe-card ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #454b5c; }
+  .footer { font-size: 13px; text-align: center; color: var(--muted); margin-top: 12px; }
   .recipe-card .actions { margin-top: 14px; }
   .recipe-card .actions button {
     width: 100%;
@@ -255,6 +257,7 @@
     text-align: center;
   }
   .saved-item {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -264,10 +267,44 @@
     border-radius: 14px;
     margin-bottom: 8px;
   }
-  .saved-item .title { cursor: pointer; font-weight: 600; }
-  .saved-item .title:hover { color: var(--blue-2); }
-  .saved-item button { padding: 6px 14px; font-size: 12px; background: #fff0f0; color: #e0455a; box-shadow: none; }
-  .saved-item button:hover { box-shadow: none; background: #ffe1e3; }
+  .saved-item .title {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    margin-right: 28px;
+  }
+  .saved-item .title-text {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .saved-item .title-time {
+    font-weight: 300;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .saved-item .title:hover .title-text { color: var(--blue-2); }
+  .saved-item button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+    background: transparent;
+    color: var(--muted);
+    box-shadow: none;
+  }
+  .saved-item button:hover { box-shadow: none; background: #ffe1e3; color: #e0455a; }
 
   #savedDetail {
     margin-top: 12px;
@@ -285,12 +322,15 @@
     .page { gap: 14px; }
 
     .topbar { flex-direction: column; align-items: stretch; padding: 16px; border-radius: 18px; }
+    .topbar.is-logged-in { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: nowrap; }
     .brand { font-size: 16px; }
 
+    .topbar.is-logged-in .profile-box { width: auto; flex-direction: row; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: nowrap; }
     .profile-box { width: 100%; flex-direction: column; align-items: stretch; gap: 8px; }
-    #profileForm { flex-direction: column; }
-    #profileForm input { width: 100%; flex: none; }
-    #profileForm button, #logoutBtn { width: 100%; }
+    #profileForm { flex-direction: column; gap: 0; }
+    #profileForm input { width: 100%; flex: none; margin-top: 10px; }
+    #profileForm button, #logoutBtn { width: 100%; margin-top: 10px; }
+    .topbar.is-logged-in #logoutBtn { width: auto; margin-top: 0; }
 
     .card { padding: 16px; border-radius: 18px; }
     .card-title { font-size: 15px; }
@@ -305,8 +345,13 @@
     .recipe-card .actions button { width: 100%; }
 
     .saved-item { flex-direction: column; align-items: flex-start; gap: 8px; }
-    .saved-item .title { word-break: break-word; }
-    .saved-item button { align-self: flex-end; }
+    .saved-item .title { margin-right: 28px; }
+    .saved-item .title-text {
+      word-break: break-word;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+    }
   }
 </style>
 </head>
@@ -381,6 +426,8 @@
       <div id="savedList"></div>
       <div id="savedDetail"></div>
     </section>
+
+    <footer class="footer">© 2026 냉장고 레시피. All rights reserved.</footer>
   </div>
 
 <script>
@@ -610,6 +657,7 @@ function setLoggedInUI(loggedIn) {
   loginRequiredEl.style.display = loggedIn ? "none" : "flex";
   savedListStatusEl.style.display = loggedIn ? "" : "none";
   savedListEl.style.display = loggedIn ? "" : "none";
+  document.querySelector(".topbar").classList.toggle("is-logged-in", loggedIn);
 }
 
 profileBtn.addEventListener("click", async () => {
@@ -693,14 +741,25 @@ function renderSavedList(recipes) {
     const row = document.createElement("div");
     row.className = "saved-item";
 
-    const title = document.createElement("span");
+    const title = document.createElement("div");
     title.className = "title";
-    title.textContent = `${r.title} (${new Date(r.created_at).toLocaleString()})`;
     title.addEventListener("click", () => showSavedDetail(r.id));
+
+    const titleText = document.createElement("span");
+    titleText.className = "title-text";
+    titleText.textContent = r.title;
+    title.appendChild(titleText);
+
+    const titleTime = document.createElement("span");
+    titleTime.className = "title-time";
+    titleTime.textContent = new Date(r.created_at).toLocaleString();
+    title.appendChild(titleTime);
+
     row.appendChild(title);
 
     const delBtn = document.createElement("button");
-    delBtn.textContent = "삭제";
+    delBtn.textContent = "×";
+    delBtn.setAttribute("aria-label", "삭제");
     delBtn.addEventListener("click", async () => {
       if (!confirm("이 레시피를 삭제할까요?")) return;
       const res = await fetch(
