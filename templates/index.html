@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>냉장고 재료 인식</title>
+<style>
+  body { font-family: -apple-system, "Malgun Gothic", sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; color: #222; }
+  h1 { font-size: 20px; }
+  #preview { max-width: 100%; margin-top: 12px; border-radius: 8px; display: none; }
+  button { padding: 8px 16px; border-radius: 6px; border: 1px solid #333; background: #222; color: #fff; cursor: pointer; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #status { margin-top: 12px; font-size: 14px; color: #666; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .chip { background: #eee; border-radius: 16px; padding: 6px 10px; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+  .chip button { background: none; border: none; color: #999; padding: 0; font-size: 14px; }
+  .add-row { display: flex; gap: 8px; margin-top: 12px; }
+  .add-row input { flex: 1; padding: 6px; }
+  .recipe-card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-top: 12px; }
+  .recipe-card h3 { margin: 0 0 8px; font-size: 16px; }
+  .recipe-card .meta { font-size: 13px; color: #666; margin-bottom: 8px; }
+  .recipe-card ol { margin: 8px 0 0; padding-left: 20px; font-size: 14px; }
+  .recipe-card .actions { margin-top: 10px; }
+  .profile-box { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 20px; }
+  .profile-box input { padding: 6px; margin-right: 6px; }
+  .saved-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 8px 0; font-size: 14px; }
+  .saved-item .title { cursor: pointer; }
+  .saved-item .title:hover { text-decoration: underline; }
+  .saved-item button { padding: 4px 10px; font-size: 12px; }
+  #savedDetail { margin-top: 8px; font-size: 14px; white-space: pre-wrap; background: #f7f7f7; padding: 10px; border-radius: 6px; display: none; }
+</style>
+</head>
+<body>
+  <div class="profile-box" id="profileBox">
+    <div id="profileForm">
+      <input type="text" id="emailInput" placeholder="이메일">
+      <input type="text" id="nicknameInput" placeholder="닉네임">
+      <button id="profileBtn">프로필 생성/로그인</button>
+    </div>
+    <button id="logoutBtn" style="display: none;">로그아웃</button>
+    <div id="profileStatus" style="margin-top: 8px; font-size: 14px; color: #666;"></div>
+  </div>
+
+  <h1>냉장고 사진으로 재료 인식하기</h1>
+
+  <input type="file" id="imageInput" accept="image/*">
+  <img id="preview">
+  <div>
+    <button id="recognizeBtn">재료 인식하기</button>
+  </div>
+  <div id="status"></div>
+
+  <div class="chips" id="chips"></div>
+  <div class="add-row">
+    <input type="text" id="newIngredient" placeholder="재료 직접 추가">
+    <button id="addBtn">추가</button>
+  </div>
+
+  <div>
+    <button id="recipeBtn" style="margin-top: 16px;">레시피 추천받기</button>
+  </div>
+  <div id="recipeStatus"></div>
+  <div id="recipes"></div>
+
+  <h1 style="margin-top: 32px;">내 레시피</h1>
+  <div id="savedListStatus" style="font-size: 14px; color: #666;"></div>
+  <div id="savedList"></div>
+  <div id="savedDetail"></div>
+
+<script>
+const imageInput = document.getElementById("imageInput");
+const preview = document.getElementById("preview");
+const recognizeBtn = document.getElementById("recognizeBtn");
+const statusEl = document.getElementById("status");
+const chipsEl = document.getElementById("chips");
+const newIngredientInput = document.getElementById("newIngredient");
+const addBtn = document.getElementById("addBtn");
+
+let ingredients = [];
+
+imageInput.addEventListener("change", () => {
+  const file = imageInput.files[0];
+  if (!file) return;
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+});
+
+function renderChips() {
+  chipsEl.innerHTML = "";
+  ingredients.forEach((name, idx) => {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.textContent = name;
+    const removeBtn = document.createElement("button");
+    removeBtn.textContent = "✕";
+    removeBtn.addEventListener("click", () => {
+      ingredients.splice(idx, 1);
+      renderChips();
+    });
+    chip.appendChild(removeBtn);
+    chipsEl.appendChild(chip);
+  });
+}
+
+addBtn.addEventListener("click", () => {
+  const value = newIngredientInput.value.trim();
+  if (!value) return;
+  ingredients.push(value);
+  newIngredientInput.value = "";
+  renderChips();
+});
+
+recognizeBtn.addEventListener("click", async () => {
+  const file = imageInput.files[0];
+  if (!file) {
+    statusEl.textContent = "이미지를 먼저 선택해주세요.";
+    return;
+  }
+
+  recognizeBtn.disabled = true;
+  statusEl.textContent = "인식 중... (최대 수십 초 소요될 수 있어요)";
+
+  const formData = new FormData();
+  formData.append("image", file);
+
+  try {
+    const res = await fetch("/api/recognize-ingredients", { method: "POST", body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      statusEl.textContent = "오류: " + (data.error || "알 수 없는 오류");
+      return;
+    }
+
+    ingredients = data.ingredients || [];
+    renderChips();
+    statusEl.textContent = `${ingredients.length}개 재료를 인식했습니다. 필요하면 수정하세요.`;
+  } catch (e) {
+    statusEl.textContent = "요청 실패: " + e.message;
+  } finally {
+    recognizeBtn.disabled = false;
+  }
+});
+
+const recipeBtn = document.getElementById("recipeBtn");
+const recipeStatusEl = document.getElementById("recipeStatus");
+const recipesEl = document.getElementById("recipes");
+
+let currentUser = null; // { user_id, email, nickname }
+
+function stripStepNumber(step) {
+  return String(step).replace(/^\s*\d+\s*[.)]\s*/, "");
+}
+
+function renderRecipes(recipes) {
+  recipesEl.innerHTML = "";
+  recipes.forEach((r) => {
+    const card = document.createElement("div");
+    card.className = "recipe-card";
+
+    const title = document.createElement("h3");
+    title.textContent = r.title;
+    card.appendChild(title);
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const additional = (r.additional_ingredients || []).join(", ") || "없음";
+    meta.textContent = `예상 시간: ${r.estimated_time_minutes}분 · 추가 필요 재료: ${additional}`;
+    card.appendChild(meta);
+
+    const steps = document.createElement("ol");
+    (r.steps || []).forEach((step) => {
+      const li = document.createElement("li");
+      li.textContent = stripStepNumber(step);
+      steps.appendChild(li);
+    });
+    card.appendChild(steps);
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "저장";
+    saveBtn.addEventListener("click", async () => {
+      if (!currentUser) {
+        alert("먼저 프로필을 생성/로그인해주세요.");
+        return;
+      }
+      saveBtn.disabled = true;
+      try {
+        const res = await fetch("/api/recipes/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: currentUser.user_id,
+            title: r.title,
+            used_ingredients: r.used_ingredients || [],
+            additional_ingredients: r.additional_ingredients || [],
+            steps: r.steps || [],
+            estimated_time_minutes: r.estimated_time_minutes,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert("저장 실패: " + (data.error || "알 수 없는 오류"));
+          return;
+        }
+        saveBtn.textContent = "저장됨";
+        loadSavedList();
+      } catch (e) {
+        alert("저장 실패: " + e.message);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+    actions.appendChild(saveBtn);
+    card.appendChild(actions);
+
+    recipesEl.appendChild(card);
+  });
+}
+
+recipeBtn.addEventListener("click", async () => {
+  if (ingredients.length === 0) {
+    recipeStatusEl.textContent = "재료를 먼저 인식하거나 직접 추가해주세요.";
+    return;
+  }
+
+  recipeBtn.disabled = true;
+  recipeStatusEl.textContent = "레시피 생성 중... (최대 수십 초 소요될 수 있어요)";
+  recipesEl.innerHTML = "";
+
+  try {
+    const res = await fetch("/api/generate-recipes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ingredients }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      recipeStatusEl.textContent = "오류: " + (data.error || "알 수 없는 오류");
+      return;
+    }
+
+    renderRecipes(data.recipes || []);
+    recipeStatusEl.textContent = `${(data.recipes || []).length}개 레시피를 추천받았습니다.`;
+  } catch (e) {
+    recipeStatusEl.textContent = "요청 실패: " + e.message;
+  } finally {
+    recipeBtn.disabled = false;
+  }
+});
+
+const emailInput = document.getElementById("emailInput");
+const nicknameInput = document.getElementById("nicknameInput");
+const profileForm = document.getElementById("profileForm");
+const profileBtn = document.getElementById("profileBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const profileStatusEl = document.getElementById("profileStatus");
+const savedListStatusEl = document.getElementById("savedListStatus");
+const savedListEl = document.getElementById("savedList");
+const savedDetailEl = document.getElementById("savedDetail");
+
+function setLoggedInUI(loggedIn) {
+  profileForm.style.display = loggedIn ? "none" : "block";
+  logoutBtn.style.display = loggedIn ? "inline-block" : "none";
+}
+
+profileBtn.addEventListener("click", async () => {
+  const email = emailInput.value.trim();
+  const nickname = nicknameInput.value.trim();
+  if (!email || !nickname) {
+    profileStatusEl.textContent = "이메일과 닉네임을 모두 입력해주세요.";
+    return;
+  }
+
+  profileBtn.disabled = true;
+  try {
+    const res = await fetch("/api/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, nickname }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      profileStatusEl.textContent = "오류: " + (data.error || "알 수 없는 오류");
+      return;
+    }
+    currentUser = data;
+    localStorage.setItem("fridge_user", JSON.stringify(data));
+    profileStatusEl.textContent = `${data.nickname}님으로 로그인되었습니다. (${data.email})`;
+    setLoggedInUI(true);
+    loadSavedList();
+  } catch (e) {
+    profileStatusEl.textContent = "요청 실패: " + e.message;
+  } finally {
+    profileBtn.disabled = false;
+  }
+});
+
+logoutBtn.addEventListener("click", () => {
+  currentUser = null;
+  localStorage.removeItem("fridge_user");
+  emailInput.value = "";
+  nicknameInput.value = "";
+  profileStatusEl.textContent = "로그아웃되었습니다.";
+  setLoggedInUI(false);
+  savedListEl.innerHTML = "";
+  savedListStatusEl.textContent = "";
+  savedDetailEl.style.display = "none";
+
+  imageInput.value = "";
+  preview.src = "";
+  preview.style.display = "none";
+  statusEl.textContent = "";
+  ingredients = [];
+  renderChips();
+
+  recipesEl.innerHTML = "";
+  recipeStatusEl.textContent = "";
+});
+
+async function loadSavedList() {
+  if (!currentUser) return;
+  savedListStatusEl.textContent = "불러오는 중...";
+  savedDetailEl.style.display = "none";
+
+  try {
+    const res = await fetch(`/api/recipes/saved?user_id=${currentUser.user_id}`);
+    const data = await res.json();
+    if (!res.ok) {
+      savedListStatusEl.textContent = "오류: " + (data.error || "알 수 없는 오류");
+      return;
+    }
+    renderSavedList(data.recipes || []);
+    savedListStatusEl.textContent = data.recipes.length ? "" : "저장된 레시피가 없습니다.";
+  } catch (e) {
+    savedListStatusEl.textContent = "요청 실패: " + e.message;
+  }
+}
+
+function renderSavedList(recipes) {
+  savedListEl.innerHTML = "";
+  recipes.forEach((r) => {
+    const row = document.createElement("div");
+    row.className = "saved-item";
+
+    const title = document.createElement("span");
+    title.className = "title";
+    title.textContent = `${r.title} (${new Date(r.created_at).toLocaleString()})`;
+    title.addEventListener("click", () => showSavedDetail(r.id));
+    row.appendChild(title);
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "삭제";
+    delBtn.addEventListener("click", async () => {
+      if (!confirm("이 레시피를 삭제할까요?")) return;
+      const res = await fetch(
+        `/api/recipes/saved/${r.id}?user_id=${currentUser.user_id}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        alert("삭제 실패: " + (data.error || "알 수 없는 오류"));
+        return;
+      }
+      loadSavedList();
+    });
+    row.appendChild(delBtn);
+
+    savedListEl.appendChild(row);
+  });
+}
+
+async function showSavedDetail(id) {
+  const res = await fetch(`/api/recipes/saved/${id}`);
+  const data = await res.json();
+  if (!res.ok) {
+    alert("조회 실패: " + (data.error || "알 수 없는 오류"));
+    return;
+  }
+  const stepsText = (data.steps || [])
+    .map((s, i) => `${i + 1}. ${stripStepNumber(s)}`)
+    .join("\n");
+  savedDetailEl.textContent =
+    `[${data.title}] 예상 시간: ${data.estimated_time_minutes}분\n` +
+    `사용 재료: ${(data.used_ingredients || []).join(", ")}\n` +
+    `추가 재료: ${(data.additional_ingredients || []).join(", ")}\n\n${stepsText}`;
+  savedDetailEl.style.display = "block";
+}
+
+// 페이지 로드 시 이전 로그인 정보 복원
+(() => {
+  const saved = localStorage.getItem("fridge_user");
+  if (saved) {
+    currentUser = JSON.parse(saved);
+    emailInput.value = currentUser.email;
+    nicknameInput.value = currentUser.nickname;
+    profileStatusEl.textContent = `${currentUser.nickname}님으로 로그인되었습니다. (${currentUser.email})`;
+    setLoggedInUI(true);
+    loadSavedList();
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+.env
+__pycache__/
+instance/
+.claude/settings.local.json
+냉장고.avif
+냉장고02.jpg
