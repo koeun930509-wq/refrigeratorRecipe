@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>냉장고 재료 인식</title>
 <style>
   :root {
@@ -151,7 +152,7 @@
 
   .profile-box { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   #profileForm { display: flex; gap: 8px; flex-wrap: wrap; }
-  #profileForm input { width: 150px; }
+  #profileForm input { width: 140px; flex: 1 1 140px; }
   #profileStatus { font-size: 13px; color: var(--muted); }
 
   #savedList { margin-top: 8px; }
@@ -179,6 +180,35 @@
     border-radius: 16px;
     display: none;
     line-height: 1.6;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 16px 12px 60px; }
+    .page { gap: 14px; }
+
+    .topbar { flex-direction: column; align-items: stretch; padding: 16px; border-radius: 18px; }
+    .brand { font-size: 16px; }
+
+    .profile-box { width: 100%; flex-direction: column; align-items: stretch; gap: 8px; }
+    #profileForm { flex-direction: column; }
+    #profileForm input { width: 100%; }
+    #profileForm button, #logoutBtn { width: 100%; }
+
+    .card { padding: 16px; border-radius: 18px; }
+    .card-title { font-size: 15px; }
+
+    input[type="file"] { width: 100%; }
+    #recognizeBtn { width: 100%; }
+    #recipeBtn { width: 100%; }
+
+    .add-row button { flex-shrink: 0; }
+
+    .recipe-card { padding: 14px; }
+    .recipe-card .actions button { width: 100%; }
+
+    .saved-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .saved-item .title { word-break: break-word; }
+    .saved-item button { align-self: flex-end; }
   }
 </style>
 </head>
