@@ -136,8 +136,19 @@
     color: var(--text);
     box-shadow: none;
   }
-  #logoutBtn { padding-left: 10px; padding-right: 10px; font-size: 13px; font-weight: 400; }
-  #logoutBtn:hover, .btn-outline:hover { box-shadow: none; background: #e7eaf3; }
+  #logoutBtn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+  }
+  #logoutBtn svg { width: 21.6px; height: 21.6px; stroke: var(--muted); }
+  .btn-outline:hover { box-shadow: none; background: #e7eaf3; transform: none; }
+  #logoutBtn:hover { box-shadow: none; background: transparent; }
+  #logoutBtn:hover svg { stroke: var(--text); }
 
   #recognizeBtn, #recipeBtn { padding: 16px 20px; }
   #recipeBtn { width: 100%; }
@@ -329,8 +340,7 @@
     .profile-box { width: 100%; flex-direction: column; align-items: stretch; gap: 8px; }
     #profileForm { flex-direction: column; gap: 0; }
     #profileForm input { width: 100%; flex: none; margin-top: 10px; }
-    #profileForm button, #logoutBtn { width: 100%; margin-top: 10px; }
-    .topbar.is-logged-in #logoutBtn { width: auto; margin-top: 0; padding: 10px 16px; border-radius: 8px; }
+    #profileForm button { width: 100%; margin-top: 10px; }
 
     .card { padding: 16px; border-radius: 18px; }
     .card-title { font-size: 15px; }
@@ -353,6 +363,17 @@
       text-overflow: clip;
     }
   }
+
+  button.btn-plain {
+    background: #f1f3f9 !important;
+    color: var(--text) !important;
+    box-shadow: none !important;
+  }
+  button.btn-plain:hover {
+    background: #e7eaf3 !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
 </style>
 </head>
 <body>
@@ -366,7 +387,13 @@
           <button id="profileBtn">프로필 생성/로그인</button>
         </div>
         <div id="profileStatus"></div>
-        <button id="logoutBtn" style="display: none;">로그아웃</button>
+        <button id="logoutBtn" style="display: none;" aria-label="로그아웃" title="로그아웃">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"></path>
+            <path d="M16 17l5-5-5-5"></path>
+            <path d="M21 12H9"></path>
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -397,7 +424,7 @@
       <div class="chips" id="chips"></div>
       <div class="add-row">
         <input type="text" id="newIngredient" placeholder="재료 직접 추가">
-        <button id="addBtn" class="btn-outline">추가</button>
+        <button id="addBtn" class="btn-plain">추가</button>
       </div>
     </section>
 
