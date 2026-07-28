@@ -4,67 +4,229 @@
 <meta charset="utf-8">
 <title>냉장고 재료 인식</title>
 <style>
-  body { font-family: -apple-system, "Malgun Gothic", sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; color: #222; }
-  h1 { font-size: 20px; }
-  #preview { max-width: 100%; margin-top: 12px; border-radius: 8px; display: none; }
-  button { padding: 8px 16px; border-radius: 6px; border: 1px solid #333; background: #222; color: #fff; cursor: pointer; }
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
-  #status { margin-top: 12px; font-size: 14px; color: #666; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-  .chip { background: #eee; border-radius: 16px; padding: 6px 10px; font-size: 14px; display: flex; align-items: center; gap: 6px; }
-  .chip button { background: none; border: none; color: #999; padding: 0; font-size: 14px; }
-  .add-row { display: flex; gap: 8px; margin-top: 12px; }
-  .add-row input { flex: 1; padding: 6px; }
-  .recipe-card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-top: 12px; }
-  .recipe-card h3 { margin: 0 0 8px; font-size: 16px; }
-  .recipe-card .meta { font-size: 13px; color: #666; margin-bottom: 8px; }
-  .recipe-card ol { margin: 8px 0 0; padding-left: 20px; font-size: 14px; }
-  .recipe-card .actions { margin-top: 10px; }
-  .profile-box { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 20px; }
-  .profile-box input { padding: 6px; margin-right: 6px; }
-  .saved-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 8px 0; font-size: 14px; }
-  .saved-item .title { cursor: pointer; }
-  .saved-item .title:hover { text-decoration: underline; }
-  .saved-item button { padding: 4px 10px; font-size: 12px; }
-  #savedDetail { margin-top: 8px; font-size: 14px; white-space: pre-wrap; background: #f7f7f7; padding: 10px; border-radius: 6px; display: none; }
+  :root {
+    --bg: #eef1f8;
+    --card: #ffffff;
+    --text: #1f2430;
+    --muted: #8a8fa3;
+    --border: #eceef5;
+    --blue-1: #6ec6ff;
+    --blue-2: #4f8ef7;
+    --shadow: 0 10px 28px rgba(31, 41, 66, 0.08);
+    --shadow-sm: 0 4px 14px rgba(31, 41, 66, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 32px 20px 80px;
+  }
+
+  .page { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+  .topbar {
+    background: var(--card);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .brand { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .brand .emoji { font-size: 22px; }
+
+  .card {
+    background: var(--card);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    padding: 24px;
+  }
+
+  .card-title { font-size: 17px; font-weight: 700; margin: 0 0 16px; display: flex; align-items: center; gap: 8px; }
+
+  input[type="text"], input[type="file"] {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #f8f9fd;
+    color: var(--text);
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--blue-2); background: #fff; }
+  input[type="file"] { border-radius: 14px; }
+
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(79, 142, 247, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79, 142, 247, 0.42); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
+
+  #logoutBtn, .btn-outline {
+    background: #f1f3f9;
+    color: var(--text);
+    box-shadow: none;
+  }
+  #logoutBtn:hover, .btn-outline:hover { box-shadow: none; background: #e7eaf3; }
+
+  #preview { max-width: 100%; margin-top: 14px; border-radius: 16px; display: none; box-shadow: var(--shadow-sm); }
+
+  #status, #recipeStatus, #savedListStatus { margin-top: 12px; font-size: 13px; color: var(--muted); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .chip {
+    background: #eaf2ff;
+    color: #2b6cb0;
+    border-radius: 999px;
+    padding: 7px 8px 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chip:nth-child(4n+2) { background: #e9f9f0; color: #1f9d55; }
+  .chip:nth-child(4n+3) { background: #f1ecff; color: #7c3aed; }
+  .chip:nth-child(4n+4) { background: #fff3e0; color: #d97706; }
+  .chip button {
+    background: rgba(0,0,0,0.08);
+    border: none;
+    color: inherit;
+    padding: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 1;
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .chip button:hover { transform: none; box-shadow: none; background: rgba(0,0,0,0.15); }
+
+  .add-row { display: flex; gap: 8px; margin-top: 14px; }
+  .add-row input { flex: 1; }
+
+  #recipes { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
+  .recipe-card {
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 18px;
+    background: #fbfcff;
+  }
+  .recipe-card h3 { margin: 0 0 10px; font-size: 16px; }
+  .recipe-card .meta {
+    font-size: 12px;
+    color: #4f8ef7;
+    background: #eaf2ff;
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .recipe-card ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #454b5c; }
+  .recipe-card .actions { margin-top: 14px; }
+  .recipe-card .actions button { padding: 7px 16px; font-size: 13px; }
+
+  .profile-box { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #profileForm { display: flex; gap: 8px; flex-wrap: wrap; }
+  #profileForm input { width: 150px; }
+  #profileStatus { font-size: 13px; color: var(--muted); }
+
+  #savedList { margin-top: 8px; }
+  .saved-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    font-size: 14px;
+    background: #f8f9fd;
+    border-radius: 14px;
+    margin-bottom: 8px;
+  }
+  .saved-item .title { cursor: pointer; font-weight: 600; }
+  .saved-item .title:hover { color: var(--blue-2); }
+  .saved-item button { padding: 6px 14px; font-size: 12px; background: #fff0f0; color: #e0455a; box-shadow: none; }
+  .saved-item button:hover { box-shadow: none; background: #ffe1e3; }
+
+  #savedDetail {
+    margin-top: 12px;
+    font-size: 13px;
+    white-space: pre-wrap;
+    background: #f8f9fd;
+    padding: 16px;
+    border-radius: 16px;
+    display: none;
+    line-height: 1.6;
+  }
 </style>
 </head>
 <body>
-  <div class="profile-box" id="profileBox">
-    <div id="profileForm">
-      <input type="text" id="emailInput" placeholder="이메일">
-      <input type="text" id="nicknameInput" placeholder="닉네임">
-      <button id="profileBtn">프로필 생성/로그인</button>
-    </div>
-    <button id="logoutBtn" style="display: none;">로그아웃</button>
-    <div id="profileStatus" style="margin-top: 8px; font-size: 14px; color: #666;"></div>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand"><span class="emoji">🧊</span> 냉장고 레시피</div>
+      <div class="profile-box" id="profileBox">
+        <div id="profileForm">
+          <input type="text" id="emailInput" placeholder="이메일">
+          <input type="text" id="nicknameInput" placeholder="닉네임">
+          <button id="profileBtn">프로필 생성/로그인</button>
+        </div>
+        <button id="logoutBtn" style="display: none;">로그아웃</button>
+        <div id="profileStatus"></div>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2 class="card-title">📷 냉장고 사진으로 재료 인식하기</h2>
+      <input type="file" id="imageInput" accept="image/*">
+      <img id="preview">
+      <div>
+        <button id="recognizeBtn" style="margin-top: 14px;">재료 인식하기</button>
+      </div>
+      <div id="status"></div>
+
+      <div class="chips" id="chips"></div>
+      <div class="add-row">
+        <input type="text" id="newIngredient" placeholder="재료 직접 추가">
+        <button id="addBtn" class="btn-outline">추가</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">🍳 레시피 추천</h2>
+      <button id="recipeBtn">레시피 추천받기</button>
+      <div id="recipeStatus"></div>
+      <div id="recipes"></div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">⭐ 내 레시피</h2>
+      <div id="savedListStatus"></div>
+      <div id="savedList"></div>
+      <div id="savedDetail"></div>
+    </section>
   </div>
-
-  <h1>냉장고 사진으로 재료 인식하기</h1>
-
-  <input type="file" id="imageInput" accept="image/*">
-  <img id="preview">
-  <div>
-    <button id="recognizeBtn">재료 인식하기</button>
-  </div>
-  <div id="status"></div>
-
-  <div class="chips" id="chips"></div>
-  <div class="add-row">
-    <input type="text" id="newIngredient" placeholder="재료 직접 추가">
-    <button id="addBtn">추가</button>
-  </div>
-
-  <div>
-    <button id="recipeBtn" style="margin-top: 16px;">레시피 추천받기</button>
-  </div>
-  <div id="recipeStatus"></div>
-  <div id="recipes"></div>
-
-  <h1 style="margin-top: 32px;">내 레시피</h1>
-  <div id="savedListStatus" style="font-size: 14px; color: #666;"></div>
-  <div id="savedList"></div>
-  <div id="savedDetail"></div>
 
 <script>
 const imageInput = document.getElementById("imageInput");
