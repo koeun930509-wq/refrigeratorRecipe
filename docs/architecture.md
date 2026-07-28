@@ -114,9 +114,12 @@ flowchart TD
 
 ## 2. 데이터 플로우
 
+세 흐름을 잇는 코드가 없어서(서로 다른 진입점에서 시작), 하나로 억지로 합치지 않고 각각 독립된 다이어그램으로 나눴습니다.
+
+### 2.1 재료 인식 흐름
+
 ```mermaid
 flowchart TD
-  subgraph FLOW_A["재료 인식 흐름"]
     A1["사용자가 선택한 이미지 파일\n(imageInput.files[0])"] --> A2["FormData(image)"]
     A2 --> A3["POST /api/recognize-ingredients"]
     A3 --> A4["request.files['image'] 읽기 → image_bytes"]
@@ -134,9 +137,12 @@ flowchart TD
     A13 -->|"예"| A15
     A15 --> A16["프론트: ingredients 배열 갱신"]
     A16 --> A17["renderChips() → 화면에 chip 표시"]
-  end
+```
 
-  subgraph FLOW_B["레시피 생성 흐름"]
+### 2.2 레시피 생성 흐름
+
+```mermaid
+flowchart TD
     B1["프론트 ingredients 배열"] --> B2["POST /api/generate-recipes\nbody: {ingredients, options}"]
     B2 --> B3["generate_recipes(): 프롬프트 문자열 구성"]
     B3 --> B4["call_openrouter\n(model: openai/gpt-oss-20b:free)"]
@@ -151,9 +157,12 @@ flowchart TD
     B10 -->|"아니오"| B12
     B12 --> B13["프론트: renderRecipes(data.recipes)"]
     B13 --> B14["stripStepNumber()로 단계 번호 중복 제거\n→ recipe-card 렌더링"]
-  end
+```
 
-  subgraph FLOW_C["프로필 · 레시피 저장 흐름"]
+### 2.3 프로필 · 레시피 저장 흐름
+
+```mermaid
+flowchart TD
     C1["email, nickname 입력값"] --> C2["POST /api/profile"]
     C2 --> C3{"EMAIL_RE 형식 검증\n통과?"}
     C3 -->|"아니오"| C4["400 에러 응답"]
@@ -185,5 +194,4 @@ flowchart TD
     C24 -->|"아니오"| C25["403 에러 응답"]
     C24 -->|"예"| C26["db.session.delete() 후 commit"]
     C26 --> C16
-  end
 ```
