@@ -314,8 +314,11 @@
     background: transparent;
     color: var(--muted);
     box-shadow: none;
+    transform: none;
   }
-  .saved-item button:hover { box-shadow: none; background: #ffe1e3; color: #e0455a; }
+  @media (hover: hover) {
+    .saved-item button:hover { box-shadow: none; background: #ffe1e3; color: #e0455a; transform: none; }
+  }
 
   #savedDetail {
     margin-top: 12px;
