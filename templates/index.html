@@ -252,7 +252,7 @@
   .profile-box { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   #profileForm { display: flex; gap: 8px; flex-wrap: wrap; }
   #profileForm input { width: 140px; flex: 1 1 140px; }
-  #profileStatus { font-size: 15px; color: var(--muted); }
+  #profileStatus { font-size: 15px; color: var(--muted); margin-left: 4px; margin-top: -2px; }
 
   #savedList { margin-top: 8px; }
   .login-required {
@@ -298,7 +298,7 @@
     color: var(--muted);
     margin-top: 4px;
   }
-  .saved-item .title:hover .title-text { color: var(--blue-2); }
+  .saved-item.active { background: #e3f2fd; box-shadow: inset 0 0 0 1.5px rgba(144, 202, 249, 0.5); }
   .saved-item button {
     position: absolute;
     top: 8px;
@@ -776,7 +776,7 @@ function renderSavedList(recipes) {
 
     const title = document.createElement("div");
     title.className = "title";
-    title.addEventListener("click", () => showSavedDetail(r.id));
+    title.addEventListener("click", () => showSavedDetail(r.id, row));
 
     const titleText = document.createElement("span");
     titleText.className = "title-text";
@@ -812,7 +812,7 @@ function renderSavedList(recipes) {
   });
 }
 
-async function showSavedDetail(id) {
+async function showSavedDetail(id, row) {
   const res = await fetch(`/api/recipes/saved/${id}`);
   const data = await res.json();
   if (!res.ok) {
@@ -823,10 +823,13 @@ async function showSavedDetail(id) {
     .map((s, i) => `${i + 1}. ${stripStepNumber(s)}`)
     .join("\n");
   savedDetailEl.textContent =
-    `[${data.title}] 예상 시간: ${data.estimated_time_minutes}분\n` +
+    `[${data.title}]\n예상 시간: ${data.estimated_time_minutes}분\n` +
     `사용 재료: ${(data.used_ingredients || []).join(", ")}\n` +
     `추가 재료: ${(data.additional_ingredients || []).join(", ")}\n\n${stepsText}`;
   savedDetailEl.style.display = "block";
+
+  savedListEl.querySelectorAll(".saved-item.active").forEach((el) => el.classList.remove("active"));
+  if (row) row.classList.add("active");
 }
 
 // 페이지 로드 시 이전 로그인 정보 복원
