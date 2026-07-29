@@ -817,9 +817,20 @@ function renderSavedList(recipes) {
   });
 }
 
+let savedDetailRequestId = 0;
+
 async function showSavedDetail(id, row) {
+  const requestId = ++savedDetailRequestId;
+
+  savedListEl.querySelectorAll(".saved-item.active").forEach((el) => el.classList.remove("active"));
+  if (row) row.classList.add("active");
+  savedDetailEl.textContent = "불러오는 중...";
+  savedDetailEl.style.display = "block";
+
   const res = await fetch(`/api/recipes/saved/${id}`);
   const data = await res.json();
+  if (requestId !== savedDetailRequestId) return;
+
   if (!res.ok) {
     alert("조회 실패: " + (data.error || "알 수 없는 오류"));
     return;
@@ -831,10 +842,6 @@ async function showSavedDetail(id, row) {
     `[${data.title}]\n예상 시간: ${data.estimated_time_minutes}분\n` +
     `사용 재료: ${(data.used_ingredients || []).join(", ")}\n` +
     `추가 재료: ${(data.additional_ingredients || []).join(", ")}\n\n${stepsText}`;
-  savedDetailEl.style.display = "block";
-
-  savedListEl.querySelectorAll(".saved-item.active").forEach((el) => el.classList.remove("active"));
-  if (row) row.classList.add("active");
 }
 
 // 페이지 로드 시 이전 로그인 정보 복원
