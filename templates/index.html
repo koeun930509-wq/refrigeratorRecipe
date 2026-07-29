@@ -277,9 +277,9 @@
     background: #f8f9fd;
     border-radius: 14px;
     margin-bottom: 8px;
+    cursor: pointer;
   }
   .saved-item .title {
-    cursor: pointer;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -773,10 +773,10 @@ function renderSavedList(recipes) {
   recipes.forEach((r) => {
     const row = document.createElement("div");
     row.className = "saved-item";
+    row.addEventListener("click", () => showSavedDetail(r.id, row));
 
     const title = document.createElement("div");
     title.className = "title";
-    title.addEventListener("click", () => showSavedDetail(r.id, row));
 
     const titleText = document.createElement("span");
     titleText.className = "title-text";
@@ -793,7 +793,8 @@ function renderSavedList(recipes) {
     const delBtn = document.createElement("button");
     delBtn.textContent = "×";
     delBtn.setAttribute("aria-label", "삭제");
-    delBtn.addEventListener("click", async () => {
+    delBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
       if (!confirm("이 레시피를 삭제할까요?")) return;
       const res = await fetch(
         `/api/recipes/saved/${r.id}?user_id=${currentUser.user_id}`,
